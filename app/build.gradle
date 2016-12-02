@@ -44,10 +44,13 @@ dependencies {
 
     // view helper
     compile 'com.jakewharton:butterknife:8.4.0'
-    annotationProcessor 'com.jakewharton:butterknife-compiler:8.4.0'
+    apt 'com.jakewharton:butterknife-compiler:8.4.0'
 
     // RxJava
     compile 'io.reactivex:rxjava:1.2.2'
+    compile("io.reactivex:rxandroid:${RXANDROID_VERSION}") { // exclude rx java and use its latest version
+        exclude group: 'io.reactivex:rxjava', module: 'rxjava'
+    }
     compile 'com.kelvinapps:rxfirebase:0.0.15'
 
 }

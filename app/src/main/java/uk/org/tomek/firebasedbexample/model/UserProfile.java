@@ -12,13 +12,13 @@ import me.mattlogan.auto.value.firebase.annotation.FirebaseValue;
 @FirebaseValue
 public abstract class UserProfile {
 
-    abstract int id();
+    public abstract int id();
 
-    abstract String name();
+    public abstract String name();
 
-    abstract String surname();
+    public abstract String surname();
 
-    abstract String email();
+    public abstract String email();
 
     @FirebaseAdapter(DateAdapter.class) public abstract Date birthdate();
 
