@@ -2,7 +2,9 @@ package uk.org.tomek.firebasedbexample;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseReference;
@@ -36,6 +38,9 @@ public class MainActivity extends AppCompatActivity {
     EditText mSurnameEditText;
     @BindView(R.id.edittext_email)
     EditText mEmailEditText;
+    @BindView(R.id.spinner_mediaction)
+    Spinner mSpinnerMedications;
+
     private int mLastProfileId;
     private DatabaseReference mUserProfileReference;
     private DatabaseReference mMedicationsReference;
@@ -92,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
 
                                 List<Medication> medications = new ArrayList<Medication>();
                                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                                  medications.add(Medication.newInstance(snapshot));
+                                    medications.add(Medication.newInstance(snapshot));
                                 }
                                 return medications;
                             }
@@ -101,6 +106,11 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void call(List<Medication> medications) {
                         Timber.d("Medications read from Firebase %s", medications);
+                        if (!medications.isEmpty()) {
+                            ArrayAdapter spinnerAdapter = new ArrayAdapter<Medication>(MainActivity.this,
+                                    android.R.layout.simple_spinner_item, medications);
+                            mSpinnerMedications.setAdapter(spinnerAdapter);
+                        }
                     }
                 }, new Action1<Throwable>() {
                     @Override
