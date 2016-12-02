@@ -23,7 +23,7 @@ public abstract class UserProfile {
     @FirebaseAdapter(DateAdapter.class) public abstract Date birthdate();
 
     public static UserProfile newInstance(int id, String name, String surname, String email, Date birthDate) {
-        return new AutoValue_UserProfile(id, name, email, surname, birthDate);
+        return new AutoValue_UserProfile(id, name, surname, email, birthDate);
     }
 
     public static UserProfile newInstance(DataSnapshot dataSnapshot) {

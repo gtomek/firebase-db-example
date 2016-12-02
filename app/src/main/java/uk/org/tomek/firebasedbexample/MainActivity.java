@@ -3,18 +3,25 @@ package uk.org.tomek.firebasedbexample;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.EditText;
-import butterknife.BindView;
-import butterknife.ButterKnife;
-import butterknife.OnClick;
+
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.kelvinapps.rxfirebase.RxFirebaseDatabase;
+
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
+import rx.subscriptions.CompositeSubscription;
 import timber.log.Timber;
 import uk.org.tomek.firebasedbexample.model.Medication;
 import uk.org.tomek.firebasedbexample.model.UserProfile;
@@ -32,70 +39,88 @@ public class MainActivity extends AppCompatActivity {
     private int mLastProfileId;
     private DatabaseReference mUserProfileReference;
     private DatabaseReference mMedicationsReference;
+    CompositeSubscription mCompositeSubscription;
+    private FirebaseDatabase mDatabase;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+        mCompositeSubscription = new CompositeSubscription();
 
-        // Write a message to the database
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        // enable local persistance
-        database.setPersistenceEnabled(true);
-        mUserProfileReference = database.getReference("userProfile");
+        // Write a message to the mDatabase
+        mDatabase = FirebaseDatabase.getInstance();
+        mUserProfileReference = mDatabase.getReference("userProfile");
         mUserProfileReference.keepSynced(true);
 
-        RxFirebaseDatabase.observeValueEvent(mUserProfileReference.getRoot().child("userProfile"),
-                new Func1<DataSnapshot, UserProfile>() {
-                    @Override
-                    public UserProfile call(DataSnapshot dataSnapshot) {
-                        return UserProfile.newInstance(dataSnapshot);
-                    }
-                })
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<UserProfile>() {
-            @Override
-            public void call(UserProfile userProfile) {
-                Timber.d("Profile read from %s Firebase %s", Thread.currentThread().getName(),
-                        userProfile);
-                setProfileFields(userProfile);
-            }
-        }, new Action1<Throwable>() {
-            @Override
-            public void call(Throwable throwable) {
-                Timber.e(throwable, "Error reading Firebase db");
-            }
-        });
-
-        //final DatabaseReference medicationsReference =
-        //    FirebaseUtils.createAndSaveMedications(database);
-
-        mMedicationsReference = database.getReference("medications");
+        mMedicationsReference = mDatabase.getReference("medications");
         mMedicationsReference.keepSynced(true);
 
-        RxFirebaseDatabase.observeValueEvent(mMedicationsReference.getRoot().child("medications"),
-            new Func1<DataSnapshot, Medication>() {
-                @Override
-                public Medication call(DataSnapshot dataSnapshot) {
-                    return Medication.newInstance(dataSnapshot);
-                }
-            })
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(new Action1<Medication>() {
-                @Override
-                public void call(Medication medication) {
-                    Timber.d("Medications read from %s Firebase %s", Thread.currentThread().getName(),
-                        medication);
-                }
-            }, new Action1<Throwable>() {
-                @Override
-                public void call(Throwable throwable) {
-                    Timber.e(throwable, "Error reading Firebase db");
-                }
-            });
+        final Subscription userProfileSubscription = RxFirebaseDatabase
+                .observeValueEvent(mUserProfileReference.getRoot().child("userProfile"),
+                        new Func1<DataSnapshot, UserProfile>() {
+                            @Override
+                            public UserProfile call(DataSnapshot dataSnapshot) {
+                                return UserProfile.newInstance(dataSnapshot);
+                            }
+                        }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<UserProfile>() {
+                    @Override
+                    public void call(UserProfile userProfile) {
+                        Timber.d("Profile read from %s Firebase %s", Thread.currentThread().getName(), userProfile);
+                        setProfileFields(userProfile);
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        Timber.e(throwable, "Error reading Firebase db");
+                    }
+                });
+
+        mCompositeSubscription.add(userProfileSubscription);
+
+//    final DatabaseReference medicationsReference =
+//        FirebaseUtils.createAndSaveMedications(mDatabase);
+
+
+        final Subscription medicationsSubscription = RxFirebaseDatabase
+                .observeValueEvent(mMedicationsReference.getRoot().child("medications"),
+                        new Func1<DataSnapshot, List<Medication>>() {
+                            @Override
+                            public List<Medication> call(DataSnapshot dataSnapshot) {
+
+                                List<Medication> medications = new ArrayList<Medication>();
+                                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                                  medications.add(Medication.newInstance(snapshot));
+                                }
+                                return medications;
+                            }
+                        }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<List<Medication>>() {
+                    @Override
+                    public void call(List<Medication> medications) {
+                        Timber.d("Medications read from Firebase %s", medications);
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        Timber.e(throwable, "Error reading Firebase db");
+                    }
+                });
+        mCompositeSubscription.add(medicationsSubscription);
+    }
+
+    @Override
+    protected void onPause() {
+        saveUserProfileData();
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        mCompositeSubscription.clear();
+        super.onDestroy();
     }
 
     private void setProfileFields(UserProfile userProfile) {
@@ -105,16 +130,18 @@ public class MainActivity extends AppCompatActivity {
         mEmailEditText.setText(userProfile.email());
     }
 
-
     @OnClick(R.id.button_save_profile)
-    void saveProfile() {
-        UserProfile newProfile = newInstance(mLastProfileId++, mNameEditText.getText().toString(), mSurnameEditText.getText().toString(),
-                        mEmailEditText.getText().toString(), new Date(System.currentTimeMillis()));
+    void saveProfileClicked() {
+        saveUserProfileData();
+    }
+
+    private void saveUserProfileData() {
+        UserProfile newProfile = newInstance(mLastProfileId++, mNameEditText.getText().toString(),
+                mSurnameEditText.getText().toString(), mEmailEditText.getText().toString(),
+                new Date(System.currentTimeMillis()));
         Timber.v("Saving new profile %s", newProfile);
         if (mUserProfileReference != null) {
             mUserProfileReference.setValue(newProfile.toFirebaseValue());
         }
-
     }
-
 }
