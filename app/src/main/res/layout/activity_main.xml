@@ -18,24 +18,31 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/name"/>
+
     <EditText
-        android:layout_marginTop="@dimen/medium_space"
         android:id="@+id/edittext_surname"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/medium_space"
         android:hint="@string/surname"/>
+
     <EditText
         android:id="@+id/edittext_email"
-        android:layout_marginTop="@dimen/medium_space"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/medium_space"
         android:hint="@string/email"/>
 
+    <android.support.v7.widget.AppCompatSpinner
+        android:id="@+id/spinner_mediaction"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
     <TextView
-        android:layout_marginTop="@dimen/medium_space"
         android:id="@+id/textview_date"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/medium_space"
         android:hint="@string/date"/>
 
     <Button

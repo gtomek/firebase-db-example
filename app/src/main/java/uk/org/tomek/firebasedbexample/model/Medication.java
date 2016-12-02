@@ -12,7 +12,7 @@ public abstract class Medication {
 
     abstract int id();
 
-    abstract String name();
+    public abstract String name();
 
     abstract String category();
 
