@@ -28,7 +28,6 @@ public class MedicationSpinnerAdapter extends ArrayAdapter<Object> {
     @NonNull
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        Timber.d("Get view called %d", position);
         return super.getView(position, convertView, parent);
     }
 
