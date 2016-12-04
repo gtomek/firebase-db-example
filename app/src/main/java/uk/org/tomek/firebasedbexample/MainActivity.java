@@ -19,12 +19,12 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import rx.Observable;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
-import rx.subscriptions.CompositeSubscription;
 import timber.log.Timber;
 import uk.org.tomek.firebasedbexample.adapter.MedicationSpinnerAdapter;
 import uk.org.tomek.firebasedbexample.model.Medication;
@@ -46,16 +46,15 @@ public class MainActivity extends AppCompatActivity {
     private int mLastProfileId;
     private DatabaseReference mUserProfileReference;
     private DatabaseReference mMedicationsReference;
-    CompositeSubscription mCompositeSubscription;
     private FirebaseDatabase mDatabase;
     private int mSelectedMedicationId;
+    private Subscription mFirebaseSubscription;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
-        mCompositeSubscription = new CompositeSubscription();
 
         // Write a message to the mDatabase
         mDatabase = FirebaseDatabase.getInstance();
@@ -66,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
         mMedicationsReference.keepSynced(true);
 
         // read medications
-        final Subscription medicationsSubscription = RxFirebaseDatabase
+        mFirebaseSubscription = RxFirebaseDatabase
                 .observeValueEvent(mMedicationsReference.getRoot().child("medications"),
                         new Func1<DataSnapshot, List<Medication>>() {
                             @Override
@@ -78,35 +77,25 @@ public class MainActivity extends AppCompatActivity {
                                 }
                                 return medications;
                             }
-                        }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<List<Medication>>() {
+                        }).flatMap(new Func1<List<Medication>, Observable<UserProfile>>() {
                     @Override
-                    public void call(List<Medication> medications) {
+                    public Observable<UserProfile> call(List<Medication> medications) {
                         Timber.d("Medications read from Firebase %s", medications);
                         if (!medications.isEmpty()) {
                             MedicationSpinnerAdapter spinnerAdapter = new MedicationSpinnerAdapter(MainActivity.this,
                                     android.R.layout.simple_spinner_item, medications);
                             mSpinnerMedications.setAdapter(spinnerAdapter);
                         }
+                        return RxFirebaseDatabase
+                                .observeValueEvent(mUserProfileReference.getRoot().child("userProfile"),
+                                        new Func1<DataSnapshot, UserProfile>() {
+                                            @Override
+                                            public UserProfile call(DataSnapshot dataSnapshot) {
+                                                return UserProfile.newInstance(dataSnapshot);
+                                            }
+                                        });
                     }
-                }, new Action1<Throwable>() {
-                    @Override
-                    public void call(Throwable throwable) {
-                        Timber.e(throwable, "Error reading Firebase db");
-                    }
-                });
-        mCompositeSubscription.add(medicationsSubscription);
-
-
-        // read user profile
-        final Subscription userProfileSubscription = RxFirebaseDatabase
-                .observeValueEvent(mUserProfileReference.getRoot().child("userProfile"),
-                        new Func1<DataSnapshot, UserProfile>() {
-                            @Override
-                            public UserProfile call(DataSnapshot dataSnapshot) {
-                                return UserProfile.newInstance(dataSnapshot);
-                            }
-                        }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<UserProfile>() {
                     @Override
                     public void call(UserProfile userProfile) {
@@ -120,7 +109,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-        mCompositeSubscription.add(userProfileSubscription);
 
 //    final DatabaseReference medicationsReference =
 //        FirebaseUtils.createAndSaveMedications(mDatabase);
@@ -147,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        mCompositeSubscription.clear();
+        mFirebaseSubscription.unsubscribe();
         super.onDestroy();
     }
 
@@ -156,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
         mNameEditText.setText(userProfile.name());
         mSurnameEditText.setText(userProfile.surname());
         mEmailEditText.setText(userProfile.email());
-        mSpinnerMedications.setSelection(userProfile.medicationId()- 1);
+        mSpinnerMedications.setSelection(userProfile.medicationId() - 1);
     }
 
     @OnClick(R.id.button_save_profile)
