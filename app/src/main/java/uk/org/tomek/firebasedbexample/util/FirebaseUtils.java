@@ -26,4 +26,9 @@ public class FirebaseUtils {
     medicationsReference.setValue(medicationsList);
     return medicationsReference;
   }
+
+  public final void createMedications(FirebaseDatabase database){
+    final DatabaseReference medicationsReference =
+        FirebaseUtils.createAndSaveMedications(database);
+  }
 }

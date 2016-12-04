@@ -2,10 +2,12 @@ package uk.org.tomek.firebasedbexample;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.format.DateFormat;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseReference;
@@ -42,6 +44,8 @@ public class MainActivity extends AppCompatActivity {
     EditText mEmailEditText;
     @BindView(R.id.spinner_mediaction)
     Spinner mSpinnerMedications;
+    @BindView(R.id.textview_date)
+    TextView mDateTextView;
 
     private int mLastProfileId;
     private DatabaseReference mUserProfileReference;
@@ -110,8 +114,6 @@ public class MainActivity extends AppCompatActivity {
                 });
 
 
-//    final DatabaseReference medicationsReference =
-//        FirebaseUtils.createAndSaveMedications(mDatabase);
 
         mSpinnerMedications.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -145,6 +147,8 @@ public class MainActivity extends AppCompatActivity {
         mSurnameEditText.setText(userProfile.surname());
         mEmailEditText.setText(userProfile.email());
         mSpinnerMedications.setSelection(userProfile.medicationId() - 1);
+        mDateTextView.setText(getResources().getString(R.string.date_f,
+                DateFormat.format("dd/MM/yyyy", userProfile.birthdate())));
     }
 
     @OnClick(R.id.button_save_profile)

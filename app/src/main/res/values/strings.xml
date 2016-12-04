@@ -4,5 +4,6 @@
     <string name="surname">Surname</string>
     <string name="email">Email</string>
     <string name="date">Date</string>
+    <string name="date_f">Date: %1$s</string>
     <string name="save_profile">Save Profile</string>
 </resources>
