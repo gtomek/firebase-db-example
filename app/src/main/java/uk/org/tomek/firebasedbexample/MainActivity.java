@@ -1,6 +1,7 @@
 package uk.org.tomek.firebasedbexample;
 
 import android.os.Bundle;
+import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.text.format.DateFormat;
 import android.view.View;
@@ -15,6 +16,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.kelvinapps.rxfirebase.RxFirebaseDatabase;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -29,12 +31,13 @@ import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 import timber.log.Timber;
 import uk.org.tomek.firebasedbexample.adapter.MedicationSpinnerAdapter;
+import uk.org.tomek.firebasedbexample.fragment.DatePickerFragment;
 import uk.org.tomek.firebasedbexample.model.Medication;
 import uk.org.tomek.firebasedbexample.model.UserProfile;
 
 import static uk.org.tomek.firebasedbexample.model.UserProfile.newInstance;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements DatePickerFragment.DateSelectionCallback {
 
     @BindView(R.id.edittext_name)
     EditText mNameEditText;
@@ -53,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseDatabase mDatabase;
     private int mSelectedMedicationId;
     private Subscription mFirebaseSubscription;
+    private long mSelectedTimeMs = System.currentTimeMillis();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -156,13 +160,29 @@ public class MainActivity extends AppCompatActivity {
         saveUserProfileData();
     }
 
+    @OnClick(R.id.textview_date)
+    void onDateClicked(){
+        DialogFragment newFragment = new DatePickerFragment();
+        newFragment.show(getSupportFragmentManager(), "datePicker");
+    }
+
     private void saveUserProfileData() {
         UserProfile newProfile = newInstance(mLastProfileId++, mNameEditText.getText().toString(),
                 mSurnameEditText.getText().toString(), mEmailEditText.getText().toString(),
-                new Date(System.currentTimeMillis()), mSelectedMedicationId);
+                new Date(mSelectedTimeMs), mSelectedMedicationId);
         Timber.v("Saving new profile %s", newProfile);
         if (mUserProfileReference != null) {
             mUserProfileReference.setValue(newProfile.toFirebaseValue());
         }
+    }
+
+    @Override
+    public void setSelectedDate(int year, int month, int day) {
+        Timber.v("Selected y:%d m:%d d:%d", year, month, day);
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.YEAR, year);
+        cal.set(Calendar.MONTH, month);
+        cal.set(Calendar.DAY_OF_MONTH, day);
+        mSelectedTimeMs = cal.getTimeInMillis();
     }
 }
