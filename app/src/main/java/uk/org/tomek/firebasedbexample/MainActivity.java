@@ -184,5 +184,10 @@ public class MainActivity extends AppCompatActivity implements DatePickerFragmen
         cal.set(Calendar.MONTH, month);
         cal.set(Calendar.DAY_OF_MONTH, day);
         mSelectedTimeMs = cal.getTimeInMillis();
+        setDateField(getResources().getString(R.string.date_f, DateFormat.format("dd/MM/yyyy", mSelectedTimeMs)));
+    }
+
+    private void setDateField(String string) {
+        mDateTextView.setText(string);
     }
 }
